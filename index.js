@@ -1,73 +1,55 @@
 import isPortReachable from "is-port-reachable";
 
-let portToCheck = 25626;
+// parameters:
+const portToCheck = 80;
 
-const testIP = "88.198.54.20";
-
-let ipSearchStart = [192, 168, 0, 0];
-let ipSearchEnd = [192, 168, 1, 255];
-
-// isPortReachable(25626, { host: testIP }).then((open) => {
-//   if (open) {
-//     console.log("reachable");
-//   } else {
-//     console.log("unreachable");
-//   }
-// });
-
-const ipsToCheck = 10;
-
-const getNextIp = (para) => {
-  switch (para) {
-    default:
-      return "0.0.0.0";
-      break;
-    case 5:
-      return "88.198.54.20";
-      break;
-  }
-};
+const ipSearchStart = [192, 168, 1, 0];
+const ipSearchEnd = [192, 168, 1, 255];
 
 const checkEveryIp = async (_) => {
-  console.log("Started!");
-
-  for (let i = 0; i < ipsToCheck; i++) {
-    const ipToCheck = getNextIp(i);
-    const reachable = await isPortReachable(portToCheck, { host: ipToCheck });
-    console.log(ipToCheck + "= " + reachable);
-  }
-
-  console.log("Done!");
-};
-
-// checkEveryIp();
-
-let arrayWithIps = [];
-
-const iterateOverIpRanges = () => {
-  let iterator;
-
-  let startIP =
+  // calculate first and last iterator
+  const startIP =
     (ipSearchStart[0] << 24) |
     (ipSearchStart[1] << 16) |
     (ipSearchStart[2] << 8) |
     ipSearchStart[3];
-  let endIP =
+  const endIP =
     (ipSearchEnd[0] << 24) |
     (ipSearchEnd[1] << 16) |
     (ipSearchEnd[2] << 8) |
     ipSearchEnd[3];
 
-  for (iterator = startIP; iterator < endIP; iterator++) {
-    let ipString = ((iterator & 0xff000000) >>> 24) + ".";
-    ipString += ((iterator & 0x00ff0000) >>> 16) + ".";
-    ipString += ((iterator & 0x0000ff00) >>> 8) + ".";
-    ipString += iterator & 0x000000ff;
-    arrayWithIps.push(ipString);
+  const checksToDo = endIP - startIP + 1;
+
+  console.log("################## Started! ##################");
+
+  for (let iterator = startIP; iterator < endIP + 1; iterator++) {
+    const ipToCheck = getIpStringFromIterator(iterator);
+    const reachable = await isPortReachable(portToCheck, { host: ipToCheck });
+    const checksDone = iterator - startIP + 1;
+
+    console.log(
+      ipToCheck +
+        "\t\t" +
+        reachable +
+        "\t\t" +
+        "(" +
+        checksDone +
+        "/" +
+        +checksToDo +
+        ")"
+    );
   }
+
+  console.log("################## Done! ##################");
 };
 
-iterateOverIpRanges();
+const getIpStringFromIterator = (iterator) => {
+  let ipString = ((iterator & 0xff000000) >>> 24) + ".";
+  ipString += ((iterator & 0x00ff0000) >>> 16) + ".";
+  ipString += ((iterator & 0x0000ff00) >>> 8) + ".";
+  ipString += iterator & 0x000000ff;
+  return ipString;
+};
 
-console.log(arrayWithIps);
-console.log("Total=" + arrayWithIps.length);
+checkEveryIp();
