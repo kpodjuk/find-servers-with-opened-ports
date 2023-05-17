@@ -1,10 +1,11 @@
 import isPortReachable from "is-port-reachable";
+import { appendToFile } from "./saveToFile.js";
 
 // parameters:
 const portToCheck = 80;
 
-const ipSearchStart = [192, 168, 1, 0];
-const ipSearchEnd = [192, 168, 1, 255];
+const ipSearchStart = [88, 198, 54, 15];
+const ipSearchEnd = [88, 198, 54, 25];
 
 const checkEveryIp = async (_) => {
   // calculate first and last iterator
@@ -28,17 +29,19 @@ const checkEveryIp = async (_) => {
     const reachable = await isPortReachable(portToCheck, { host: ipToCheck });
     const checksDone = iterator - startIP + 1;
 
-    console.log(
+    let rowWithData =
       ipToCheck +
-        "\t\t" +
-        reachable +
-        "\t\t" +
-        "(" +
-        checksDone +
-        "/" +
-        +checksToDo +
-        ")"
-    );
+      "\t\t" +
+      reachable +
+      "\t\t" +
+      "(" +
+      checksDone +
+      "/" +
+      +checksToDo +
+      ")";
+
+    console.log(rowWithData);
+    appendToFile(rowWithData);
   }
 
   console.log("################## Done! ##################");
