@@ -1,10 +1,19 @@
 import fs from "fs";
-import { hrtime } from "node:process";
 
-export const appendToFile = (dataToAppend) => {
-  let timeStamp = hrtime.bigint().toString();
+const filesDir = "./files";
+
+export const appendToFile = (dataToAppend, startTimestamp) => {
+
+
+
+// create folder if doesn't exist
+if(!fs.existsSync(filesDir)){
+fs.mkdirSync(filesDir);
+}
+
+ 
   fs.appendFileSync(
-    "../files/" + timeStamp + "-allChecked.log",
-    dataToAppend + "/n"
+    filesDir + "/" + startTimestamp + "-allChecked.log",
+    dataToAppend + "\n"
   );
 };
