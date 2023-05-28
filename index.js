@@ -1,11 +1,14 @@
 import isPortReachable from "is-port-reachable";
 import { appendToFile } from "./saveToFile.js";
 import { hrtime } from "node:process";
+const formatMemoryUsage = (data) =>
+  `${Math.round((data / 1024 / 1024) * 100) / 100} MB`;
 
 // parameters:
-const portToCheck = 7777;
+// const portToCheck = 7777;
+const portToCheck = 25565;
 const ipSearchStart = [88, 198, 0, 0];
-const ipSearchEnd = [88, 198, 255, 255];
+const ipSearchEnd = [88, 198, 5, 255];
 const timeout = 1000;
 const onlyAppendIfPortOpen = true;
 
@@ -18,7 +21,7 @@ process.argv.forEach(function (val, index, array) {
 const checkEveryIp = async (_) => {
   let globalArr = [];
 
-  console.time("Done in:");
+  console.time("Done in");
   // calculate first and last iterator
   const startIP =
     (ipSearchStart[0] << 24) |
@@ -33,6 +36,8 @@ const checkEveryIp = async (_) => {
     ipSearchEnd[3];
 
   const checksToDo = endIP - startIP + 1;
+
+  console.log("Will check " + checksToDo + " addresses");
 
   // save time when search was started
 
@@ -54,11 +59,9 @@ const checkEveryIp = async (_) => {
 
     ipAdress.id = checksDone;
 
-    // console.log(ipAdress);
-
     isPortReachable(portToCheck, {
       host: ipAdress.ip,
-      timeout: timeout,
+      timeout: 10000,
     }).then((result) => {
       ipAdress.portStatus = result;
       globalArr.push(ipAdress);
@@ -72,14 +75,14 @@ const checkEveryIp = async (_) => {
               onlyOpen.push(value);
             }
           });
-          appendToFile(JSON.stringify(onlyOpen), startTimestamp);
+          appendToFile(JSON.stringify(onlyOpen, null, "\t"), startTimestamp);
         } else {
-          appendToFile(JSON.stringify(globalArr), startTimestamp);
+          appendToFile(JSON.stringify(globalArr, null, "\t"), startTimestamp);
         }
 
-        console.timeEnd("Done in:");
+        console.timeEnd("Done in");
       }
-    });
+    }, console.log("Rejected promise: " + ipAdress.ip));
 
     // console.log(rowWithData);
     // if (onlyAppendIfPortOpen && reachable)
@@ -114,5 +117,42 @@ let benchmark = {
     return this.took + "ms";
   },
 };
+
+process.on("uncaughtException", (err) => {
+  console.log(err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.log("----- Unhandled Rejection at -----");
+  console.log(promise);
+  console.log("----- Reason -----");
+  console.log(reason);
+});
+
+// setInterval(() => {
+//   // console.log(os.freemem() + "/" + os.totalmem());
+//   // var os = require("os");
+//   const memoryData = process.memoryUsage();
+
+//   const memoryUsage = {
+//     rss: `${formatMemoryUsage(
+//       memoryData.rss
+//     )} -> Resident Set Size - total memory allocated for the process execution`,
+//     heapTotal: `${formatMemoryUsage(
+//       memoryData.heapTotal
+//     )} -> total size of the allocated heap`,
+//     heapUsed: `${formatMemoryUsage(
+//       memoryData.heapUsed
+//     )} -> actual memory used during the execution`,
+//     external: `${formatMemoryUsage(memoryData.external)} -> V8 external memory`,
+//   };
+
+//   console.log(memoryUsage);
+// }, 1000);
+
+process.on("exit", (code) => {
+  // Only synchronous calls
+  console.log(`Process exited with code: ${code}`);
+});
 
 checkEveryIp();
