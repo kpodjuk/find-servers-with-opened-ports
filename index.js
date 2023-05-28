@@ -3,9 +3,10 @@ import { appendToFile } from "./saveToFile.js";
 import { hrtime } from "node:process";
 
 // parameters:
-const portToCheck = 80;
-const ipSearchStart = [88, 198, 20, 0];
-const ipSearchEnd = [88, 198, 20, 50];
+const portToCheck = 7777;
+const ipSearchStart = [88, 198, 0, 0];
+const ipSearchEnd = [88, 198, 255, 255];
+const timeout = 1000;
 const onlyAppendIfPortOpen = true;
 
 // to get arg from cmd line:
@@ -15,6 +16,9 @@ process.argv.forEach(function (val, index, array) {
 });
 
 const checkEveryIp = async (_) => {
+  let globalArr = [];
+
+  console.time("Done in:");
   // calculate first and last iterator
   const startIP =
     (ipSearchStart[0] << 24) |
@@ -35,39 +39,55 @@ const checkEveryIp = async (_) => {
   // const startTimestamp = (hrtime.bigint()/1000000n); // hrtime returns nanoseconds, converted to ms
   const startTimestamp = Date.now();
   console.log(startTimestamp);
-  console.log("################## Started! ##################");
 
   for (let iterator = startIP; iterator < endIP + 1; iterator++) {
-    benchmark.start();
+    // create object for current ip address
+    let ipAdress = {
+      ip: -1,
+      id: -1,
+      portStatus: -1,
+      checkedPort: portToCheck,
+    };
 
-    const ipToCheck = getIpStringFromIterator(iterator);
-    const reachable = await isPortReachable(portToCheck, { host: ipToCheck });
+    ipAdress.ip = getIpStringFromIterator(iterator);
     const checksDone = iterator - startIP + 1;
 
-    let rowWithData =
-      ipToCheck +
-      "\t" +
-      +portToCheck +
-      "\t" +
-      reachable +
-      "\t" +
-      benchmark.end() +
-      "\t" +
-      "(" +
-      checksDone +
-      "/" +
-      +checksToDo +
-      ")";
+    ipAdress.id = checksDone;
 
-    console.log(rowWithData);
-    if (onlyAppendIfPortOpen && reachable)
-      appendToFile(rowWithData, startTimestamp);
-    else appendToFile(rowWithData, startTimestamp);
+    // console.log(ipAdress);
+
+    isPortReachable(portToCheck, {
+      host: ipAdress.ip,
+      timeout: timeout,
+    }).then((result) => {
+      ipAdress.portStatus = result;
+      globalArr.push(ipAdress);
+      if (globalArr.length == checksToDo) {
+        globalArr.sort((a, b) => a.id - b.id); // b - a for reverse sort
+
+        if (onlyAppendIfPortOpen) {
+          let onlyOpen = [];
+          globalArr.forEach((value) => {
+            if (value.portStatus == true) {
+              onlyOpen.push(value);
+            }
+          });
+          appendToFile(JSON.stringify(onlyOpen), startTimestamp);
+        } else {
+          appendToFile(JSON.stringify(globalArr), startTimestamp);
+        }
+
+        console.timeEnd("Done in:");
+      }
+    });
+
+    // console.log(rowWithData);
+    // if (onlyAppendIfPortOpen && reachable)
+    // appendToFile(rowWithData, startTimestamp);
+    // else if (!onlyAppendIfPortOpen) appendToFile(rowWithData, startTimestamp);
 
     // benchmark.end();
   }
-
-  console.log("################## Done! ##################");
 };
 
 const getIpStringFromIterator = (iterator) => {
